@@ -17,36 +17,36 @@ class Footer extends StatelessWidget {
     super.key,
     UrlLauncherService? launcherService,
     List<SocialLinkItem>? socialItems,
-  })  : _launcherService = launcherService ?? const UrlLauncherService(),
-        _customSocialItems = socialItems;
+  }) : _launcherService = launcherService ?? const UrlLauncherService(),
+       _customSocialItems = socialItems;
 
   List<SocialLinkItem> get _defaultSocialItems => const [
-        SocialLinkItem(
-          label: 'WhatsApp',
-          url: AppData.whatsappUrl,
-          faIcon: FontAwesomeIcons.whatsapp,
-          activeColor: AppColors.whatsapp,
-          semanticLabel: 'Chat directly on WhatsApp at ${AppData.phone}',
-        ),
-        SocialLinkItem(
-          label: 'GitHub',
-          url: AppData.github,
-          faIcon: FontAwesomeIcons.github,
-          semanticLabel: 'Visit Sabin Dahal GitHub profile',
-        ),
-        SocialLinkItem(
-          label: 'LinkedIn',
-          url: AppData.linkedin,
-          faIcon: FontAwesomeIcons.linkedin,
-          semanticLabel: 'Connect on LinkedIn',
-        ),
-        SocialLinkItem(
-          label: 'Email',
-          url: 'mailto:${AppData.email}',
-          icon: Icons.email_rounded,
-          semanticLabel: 'Send email to ${AppData.email}',
-        ),
-      ];
+    SocialLinkItem(
+      label: 'WhatsApp',
+      url: AppData.whatsappUrl,
+      faIcon: FontAwesomeIcons.whatsapp,
+      activeColor: AppColors.whatsapp,
+      semanticLabel: 'Chat directly on WhatsApp at ${AppData.phone}',
+    ),
+    SocialLinkItem(
+      label: 'GitHub',
+      url: AppData.github,
+      faIcon: FontAwesomeIcons.github,
+      semanticLabel: 'Visit Sabin Dahal GitHub profile',
+    ),
+    SocialLinkItem(
+      label: 'LinkedIn',
+      url: AppData.linkedin,
+      faIcon: FontAwesomeIcons.linkedin,
+      semanticLabel: 'Connect on LinkedIn',
+    ),
+    SocialLinkItem(
+      label: 'Email',
+      url: 'mailto:${AppData.email}',
+      icon: Icons.email_rounded,
+      semanticLabel: 'Send email to ${AppData.email}',
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -154,24 +154,23 @@ class _FooterSocialRow extends StatelessWidget {
   final List<SocialLinkItem> items;
   final ValueChanged<String> onItemTap;
 
-  const _FooterSocialRow({
-    required this.items,
-    required this.onItemTap,
-  });
+  const _FooterSocialRow({required this.items, required this.onItemTap});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: items.map((item) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6),
-          child: _FooterIconButton(
-            item: item,
-            onTap: () => onItemTap(item.url),
-          ),
-        );
-      }).toList(growable: false),
+      children: items
+          .map((item) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: _FooterIconButton(
+                item: item,
+                onTap: () => onItemTap(item.url),
+              ),
+            );
+          })
+          .toList(growable: false),
     );
   }
 }
@@ -182,10 +181,7 @@ class _FooterIconButton extends StatefulWidget {
   final SocialLinkItem item;
   final VoidCallback onTap;
 
-  const _FooterIconButton({
-    required this.item,
-    required this.onTap,
-  });
+  const _FooterIconButton({required this.item, required this.onTap});
 
   @override
   State<_FooterIconButton> createState() => _FooterIconButtonState();

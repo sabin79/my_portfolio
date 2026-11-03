@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../constants/app_colors.dart';
 import '../constants/app_data.dart';
 import '../widgets/common_widgets.dart';
@@ -27,12 +28,11 @@ class ExperienceSection extends StatelessWidget {
             children: [
               const SectionTitle(
                 title: 'Work Experience',
-                subtitle:
-                    'Proven track record across production apps, client products, and systems engineering',
+                subtitle: 'Proven track record across production apps, client products, and systems engineering',
               ),
               const SizedBox(height: 64),
 
-              // Timeline list with dynamic height connecting lines
+              // Timeline list using natural Stack layout to completely prevent bottom overflow
               ...AppData.experience.asMap().entries.map((entry) {
                 final i = entry.key;
                 final exp = entry.value;
@@ -72,6 +72,7 @@ class _TimelineItem extends StatefulWidget {
   final bool isDesktop;
 
   const _TimelineItem({
+    super.key,
     required this.role,
     required this.company,
     required this.location,
@@ -93,91 +94,95 @@ class _TimelineItemState extends State<_TimelineItem> {
 
   @override
   Widget build(BuildContext context) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Timeline indicator column (Line auto-stretches)
-          SizedBox(
-            width: widget.isDesktop ? 48 : 32,
-            child: Column(
-              children: [
-                // Glowing dot node
-                Container(
-                  width: 22,
-                  height: 22,
+    final dotTop = widget.isDesktop ? 32.0 : 22.0;
+    final dotLeft = widget.isDesktop ? 13.0 : 5.0;
+    final lineLeft = widget.isDesktop ? 23.0 : 15.0;
+    final cardLeftPadding = widget.isDesktop ? 56.0 : 40.0;
+    final itemBottomSpacing = widget.isLast ? 0.0 : 32.0;
+
+    return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // 1. Continuous Timeline Connecting Line (automatically matches card's natural height)
+            if (!widget.isLast)
+              Positioned(
+                top: dotTop + 22,
+                bottom: 0,
+                left: lineLeft,
+                child: Container(
+                  width: 2,
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: widget.isCurrent
-                        ? AppColors.primaryGradient
-                        : null,
-                    color: widget.isCurrent ? null : AppColors.surfaceLight,
-                    border: Border.all(
-                      color: widget.isCurrent
-                          ? AppColors.secondary
-                          : AppColors.borderLight,
-                      width: 2,
-                    ),
-                    boxShadow: widget.isCurrent
-                        ? [
-                            BoxShadow(
-                              color: AppColors.secondary.withAlpha(120),
-                              blurRadius: 14,
-                            ),
-                          ]
-                        : [],
-                  ),
-                  child: Center(
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: widget.isCurrent
-                            ? Colors.white
-                            : AppColors.textMuted,
-                      ),
+                    gradient: LinearGradient(
+                      colors: [
+                        widget.isCurrent
+                            ? AppColors.secondary.withAlpha(160)
+                            : AppColors.borderLight,
+                        AppColors.borderLight.withAlpha(40),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
                     ),
                   ),
                 ),
+              ),
 
-                // Connecting Line expanding to match the card height
-                if (!widget.isLast)
-                  Expanded(
-                    child: Container(
-                      width: 2,
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            widget.isCurrent
-                                ? AppColors.secondary.withAlpha(160)
-                                : AppColors.borderLight,
-                            AppColors.borderLight.withAlpha(50),
-                          ],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
-                      ),
+            // 2. Node Indicator (Dot)
+            Positioned(
+              top: dotTop,
+              left: dotLeft,
+              child: Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: widget.isCurrent ? AppColors.primaryGradient : null,
+                  color: widget.isCurrent ? null : AppColors.surfaceLight,
+                  border: Border.all(
+                    color: widget.isCurrent
+                        ? AppColors.secondary
+                        : AppColors.borderLight,
+                    width: 2,
+                  ),
+                  boxShadow: widget.isCurrent
+                      ? [
+                          BoxShadow(
+                            color: AppColors.secondary.withAlpha(120),
+                            blurRadius: 14,
+                          ),
+                        ]
+                      : [],
+                ),
+                child: Center(
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: widget.isCurrent
+                          ? Colors.white
+                          : AppColors.textMuted,
                     ),
                   ),
-              ],
+                ),
+              ),
             ),
-          ),
 
-          SizedBox(width: widget.isDesktop ? 24 : 12),
-
-          // Experience Content Card
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: widget.isLast ? 0 : 36),
+            // 3. Main Experience Card (Natural auto-sizing, 100% overflow proof)
+            Padding(
+              padding: EdgeInsets.only(
+                left: cardLeftPadding,
+                bottom: itemBottomSpacing,
+              ),
               child: MouseRegion(
                 onEnter: (_) => setState(() => _hovered = true),
                 onExit: (_) => setState(() => _hovered = false),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 240),
-                  transform:
-                      Matrix4.translationValues(0, _hovered ? -4.0 : 0.0, 0),
+                  transform: Matrix4.translationValues(
+                    0,
+                    _hovered ? -4.0 : 0.0,
+                    0,
+                  ),
                   padding: EdgeInsets.all(widget.isDesktop ? 30 : 20),
                   decoration: BoxDecoration(
                     gradient: _hovered
@@ -205,9 +210,10 @@ class _TimelineItemState extends State<_TimelineItem> {
                     ],
                   ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header Row: Role & Company + Period badge
+                      // Role, Company, Location & Period
                       widget.isDesktop
                           ? Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,7 +235,7 @@ class _TimelineItemState extends State<_TimelineItem> {
 
                       const SizedBox(height: 16),
 
-                      // Description
+                      // Role Overview Description
                       Text(
                         widget.description,
                         style: GoogleFonts.inter(
@@ -241,7 +247,7 @@ class _TimelineItemState extends State<_TimelineItem> {
 
                       const SizedBox(height: 18),
 
-                      // Bullet achievements
+                      // Achievement bullets
                       ...widget.achievements.map((achievement) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8),
@@ -279,10 +285,8 @@ class _TimelineItemState extends State<_TimelineItem> {
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-    )
+          ],
+        )
         .animate()
         .fadeIn(
           duration: 600.ms,
@@ -369,7 +373,9 @@ class _TimelineItemState extends State<_TimelineItem> {
           Text(
             widget.period,
             style: GoogleFonts.inter(
-              color: widget.isCurrent ? AppColors.secondary : AppColors.textSecondary,
+              color: widget.isCurrent
+                  ? AppColors.secondary
+                  : AppColors.textSecondary,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
