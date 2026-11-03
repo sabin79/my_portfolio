@@ -37,18 +37,17 @@ class ExperienceSection extends StatelessWidget {
                 children: [
                   const SectionTitle(
                     title: 'Work Experience',
-                    subtitle:
-                        'Proven track record across production apps, client products, and systems engineering',
+                    subtitle: 'Proven track record across production apps, client products, and systems engineering',
                   ),
                   SizedBox(height: isDesktop ? 56.h : 36.h),
                   ...list.asMap().entries.map((entry) {
                     final index = entry.key;
                     final exp = entry.value;
                     return _TimelineItem(
-                      item: exp,
-                      isLast: index == list.length - 1,
-                      isDesktop: isDesktop,
-                    )
+                          item: exp,
+                          isLast: index == list.length - 1,
+                          isDesktop: isDesktop,
+                        )
                         .animate()
                         .fadeIn(
                           duration: 450.ms,
@@ -116,10 +115,7 @@ class _TimelineItem extends StatelessWidget {
           child: _TimelineDot(isCurrent: item.isCurrent),
         ),
         Padding(
-          padding: EdgeInsets.only(
-            left: cardPaddingLeft,
-            bottom: bottomMargin,
-          ),
+          padding: EdgeInsets.only(left: cardPaddingLeft, bottom: bottomMargin),
           child: _ExperienceCard(item: item, isDesktop: isDesktop),
         ),
       ],
@@ -172,10 +168,7 @@ class _ExperienceCard extends StatefulWidget {
   final ExperienceItem item;
   final bool isDesktop;
 
-  const _ExperienceCard({
-    required this.item,
-    required this.isDesktop,
-  });
+  const _ExperienceCard({required this.item, required this.isDesktop});
 
   @override
   State<_ExperienceCard> createState() => _ExperienceCardState();
@@ -231,9 +224,7 @@ class _ExperienceCardState extends State<_ExperienceCard> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: _TitleBlock(item: item),
-                  ),
+                  Expanded(child: _TitleBlock(item: item)),
                   SizedBox(width: 12.w),
                   _PeriodBadge(period: item.period, isCurrent: item.isCurrent),
                 ],
@@ -320,10 +311,7 @@ class _PeriodBadge extends StatelessWidget {
   final String period;
   final bool isCurrent;
 
-  const _PeriodBadge({
-    required this.period,
-    required this.isCurrent,
-  });
+  const _PeriodBadge({required this.period, required this.isCurrent});
 
   @override
   Widget build(BuildContext context) {
