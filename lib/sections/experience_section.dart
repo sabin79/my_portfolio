@@ -8,43 +8,32 @@ import '../constants/app_data.dart';
 import '../models/experience_item.dart';
 import '../widgets/common_widgets.dart';
 
-/// Production-ready Experience Section built with flutter_screenutil.
-/// Strictly enforces Clean Architecture, zero _build* helper methods,
-/// dual-platform layout adaptability (Desktop vs. Mobile), and overflow immunity.
 class ExperienceSection extends StatelessWidget {
-  final List<ExperienceItem>? _customItems;
+  final List<ExperienceItem>? items;
 
-  const ExperienceSection({
-    super.key,
-    List<ExperienceItem>? items,
-  }) : _customItems = items;
+  const ExperienceSection({super.key, this.items});
 
-  List<ExperienceItem> get _items =>
-      _customItems ??
-      AppData.experience
-          .map((m) => ExperienceItem.fromMap(m))
-          .toList(growable: false);
+  List<ExperienceItem> get _data =>
+      items ??
+      AppData.experience.map((m) => ExperienceItem.fromMap(m)).toList();
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth > 768;
-        final horizontalPadding = isDesktop ? 60.w : 16.w;
-        final verticalPadding = isDesktop ? 80.h : 48.h;
-        final items = _items;
+        final list = _data;
 
         return Container(
           color: AppColors.background,
           padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: verticalPadding,
+            horizontal: isDesktop ? 60.w : 16.w,
+            vertical: isDesktop ? 80.h : 48.h,
           ),
           child: Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: 1100.w),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   const SectionTitle(
                     title: 'Work Experience',
@@ -52,24 +41,21 @@ class ExperienceSection extends StatelessWidget {
                         'Proven track record across production apps, client products, and systems engineering',
                   ),
                   SizedBox(height: isDesktop ? 56.h : 36.h),
-
-                  // Declarative list of modular timeline entries
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: items.length,
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      final isLast = index == items.length - 1;
-
-                      return _TimelineEntry(
-                        item: item,
-                        index: index,
-                        isLast: isLast,
-                        isDesktop: isDesktop,
-                      );
-                    },
-                  ),
+                  ...list.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final exp = entry.value;
+                    return _TimelineItem(
+                      item: exp,
+                      isLast: index == list.length - 1,
+                      isDesktop: isDesktop,
+                    )
+                        .animate()
+                        .fadeIn(
+                          duration: 450.ms,
+                          delay: Duration(milliseconds: 80 * index),
+                        )
+                        .slideX(begin: 0.05, end: 0);
+                  }),
                 ],
               ),
             ),
@@ -80,143 +66,98 @@ class ExperienceSection extends StatelessWidget {
   }
 }
 
-/// Orchestrates an individual timeline step: connects the node, line, and card.
-/// Uses a Stack layout to ensure the connecting line matches the card's natural height
-/// without triggering tight constraint overflow bugs.
-class _TimelineEntry extends StatelessWidget {
+class _TimelineItem extends StatelessWidget {
   final ExperienceItem item;
-  final int index;
   final bool isLast;
   final bool isDesktop;
 
-  const _TimelineEntry({
+  const _TimelineItem({
     required this.item,
-    required this.index,
     required this.isLast,
     required this.isDesktop,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Aligns the indicator dot with the card's top title baseline
     final dotTop = isDesktop ? 26.h : 20.h;
     final dotLeft = isDesktop ? 12.w : 4.w;
     final lineLeft = isDesktop ? 22.w : 14.w;
-    final cardLeftPadding = isDesktop ? 54.w : 36.w;
-    final itemBottomSpacing = isLast ? 0.0 : (isDesktop ? 32.h : 20.h);
+    final cardPaddingLeft = isDesktop ? 54.w : 36.w;
+    final bottomMargin = isLast ? 0.0 : (isDesktop ? 32.h : 20.h);
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // 1. Continuous Connecting Line (Rendered for all except the last item)
         if (!isLast)
           Positioned(
-            top: dotTop + 22.r,
+            top: dotTop + 22,
             bottom: 0,
             left: lineLeft,
-            child: _TimelineConnectingLine(
-              isCurrent: item.isCurrent,
-              lineWidth: 2.w,
+            child: Container(
+              width: 2,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    item.isCurrent
+                        ? AppColors.secondary.withAlpha(160)
+                        : AppColors.borderLight,
+                    AppColors.borderLight.withAlpha(30),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
             ),
           ),
-
-        // 2. Node Indicator (Dot)
         Positioned(
           top: dotTop,
           left: dotLeft,
-          child: _TimelineNodeIndicator(
-            isCurrent: item.isCurrent,
-            size: 22.r,
-          ),
+          child: _TimelineDot(isCurrent: item.isCurrent),
         ),
-
-        // 3. Modular Experience Card (Flexible auto-sizing, 100% overflow proof)
         Padding(
           padding: EdgeInsets.only(
-            left: cardLeftPadding,
-            bottom: itemBottomSpacing,
+            left: cardPaddingLeft,
+            bottom: bottomMargin,
           ),
-          child: _ExperienceCard(
-            item: item,
-            isDesktop: isDesktop,
-          ),
+          child: _ExperienceCard(item: item, isDesktop: isDesktop),
         ),
       ],
-    )
-        .animate()
-        .fadeIn(
-          duration: 500.ms,
-          delay: Duration(milliseconds: 100 * index),
-        )
-        .slideX(begin: 0.08, end: 0);
-  }
-}
-
-/// Modular vertical connecting line between timeline nodes
-class _TimelineConnectingLine extends StatelessWidget {
-  final bool isCurrent;
-  final double lineWidth;
-
-  const _TimelineConnectingLine({
-    required this.isCurrent,
-    required this.lineWidth,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: lineWidth,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            isCurrent
-                ? AppColors.secondary.withAlpha(160)
-                : AppColors.borderLight,
-            AppColors.borderLight.withAlpha(40),
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
     );
   }
 }
 
-/// Modular glowing timeline node with status indicator
-class _TimelineNodeIndicator extends StatelessWidget {
+class _TimelineDot extends StatelessWidget {
   final bool isCurrent;
-  final double size;
 
-  const _TimelineNodeIndicator({
-    required this.isCurrent,
-    required this.size,
-  });
+  const _TimelineDot({required this.isCurrent});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size,
-      height: size,
+      width: 22,
+      height: 22,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: isCurrent ? AppColors.primaryGradient : null,
         color: isCurrent ? null : AppColors.surfaceLight,
         border: Border.all(
           color: isCurrent ? AppColors.secondary : AppColors.borderLight,
-          width: 2.r,
+          width: 2,
         ),
         boxShadow: isCurrent
             ? [
                 BoxShadow(
                   color: AppColors.secondary.withAlpha(120),
-                  blurRadius: 14.r,
+                  blurRadius: 12,
                 ),
               ]
-            : [],
+            : null,
       ),
       child: Center(
         child: Container(
-          width: (size * 0.38).r,
-          height: (size * 0.38).r,
+          width: 8,
+          height: 8,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: isCurrent ? Colors.white : AppColors.textMuted,
@@ -227,7 +168,6 @@ class _TimelineNodeIndicator extends StatelessWidget {
   }
 }
 
-/// Interactive container with micro-state hover handling and Web affordances
 class _ExperienceCard extends StatefulWidget {
   final ExperienceItem item;
   final bool isDesktop;
@@ -244,149 +184,87 @@ class _ExperienceCard extends StatefulWidget {
 class _ExperienceCardState extends State<_ExperienceCard> {
   bool _hovered = false;
 
-  void _onHover(bool value) {
-    if (_hovered != value) {
-      setState(() => _hovered = value);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
     final isDesktop = widget.isDesktop;
 
-    return Tooltip(
-      message: '${item.role} • ${item.company}',
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => _onHover(true),
-        onExit: (_) => _onHover(false),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          transform: Matrix4.translationValues(
-            0,
-            _hovered ? -4.0.h : 0.0,
-            0,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        transform: Matrix4.translationValues(0, _hovered ? -3.h : 0, 0),
+        padding: EdgeInsets.all(isDesktop ? 26.r : 18.r),
+        decoration: BoxDecoration(
+          gradient: _hovered
+              ? const LinearGradient(
+                  colors: [Color(0xFF191830), Color(0xFF1B1936)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : AppColors.cardGradient,
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(
+            color: _hovered
+                ? AppColors.secondary.withAlpha(120)
+                : AppColors.borderLight,
+            width: 1.5,
           ),
-          padding: EdgeInsets.all(isDesktop ? 26.r : 18.r),
-          decoration: BoxDecoration(
-            gradient: _hovered
-                ? const LinearGradient(
-                    colors: [Color(0xFF191830), Color(0xFF1B1936)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : AppColors.cardGradient,
-            borderRadius: BorderRadius.circular(20.r),
-            border: Border.all(
+          boxShadow: [
+            BoxShadow(
               color: _hovered
-                  ? AppColors.secondary.withAlpha(120)
-                  : AppColors.borderLight,
-              width: 1.5.r,
+                  ? AppColors.primary.withAlpha(50)
+                  : Colors.black.withAlpha(50),
+              blurRadius: _hovered ? 20.r : 8.r,
+              offset: Offset(0, _hovered ? 6.h : 3.h),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: _hovered
-                    ? AppColors.primary.withAlpha(50)
-                    : Colors.black.withAlpha(60),
-                blurRadius: _hovered ? 22.r : 10.r,
-                offset: Offset(0, _hovered ? 8.h : 4.h),
-              ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isDesktop)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _TitleBlock(item: item),
+                  ),
+                  SizedBox(width: 12.w),
+                  _PeriodBadge(period: item.period, isCurrent: item.isCurrent),
+                ],
+              )
+            else ...[
+              _TitleBlock(item: item),
+              SizedBox(height: 10.h),
+              _PeriodBadge(period: item.period, isCurrent: item.isCurrent),
             ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header: Dual-platform responsive layout
-              _ExperienceHeader(
-                item: item,
-                isDesktop: isDesktop,
+            SizedBox(height: 14.h),
+            Text(
+              item.description,
+              style: GoogleFonts.inter(
+                color: AppColors.textSecondary,
+                fontSize: 14.sp,
+                height: 1.6,
               ),
-
-              SizedBox(height: 14.h),
-
-              // Description with soft-wrapping
-              _ExperienceDescription(
-                description: item.description,
-              ),
-
-              SizedBox(height: 16.h),
-
-              // Achievement bullet points
-              _AchievementList(
-                achievements: item.achievements,
-              ),
-            ],
-          ),
+            ),
+            SizedBox(height: 16.h),
+            ...item.achievements.map((text) => _BulletPoint(text: text)),
+          ],
         ),
       ),
     );
   }
 }
 
-/// Responsive header: Side-by-side on desktop, stacked on mobile
-class _ExperienceHeader extends StatelessWidget {
+class _TitleBlock extends StatelessWidget {
   final ExperienceItem item;
-  final bool isDesktop;
 
-  const _ExperienceHeader({
-    required this.item,
-    required this.isDesktop,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (isDesktop) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: _RoleCompanyTitle(
-              role: item.role,
-              company: item.company,
-              location: item.location,
-            ),
-          ),
-          SizedBox(width: 12.w),
-          _PeriodBadge(
-            period: item.period,
-            isCurrent: item.isCurrent,
-          ),
-        ],
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _RoleCompanyTitle(
-          role: item.role,
-          company: item.company,
-          location: item.location,
-        ),
-        SizedBox(height: 10.h),
-        _PeriodBadge(
-          period: item.period,
-          isCurrent: item.isCurrent,
-        ),
-      ],
-    );
-  }
-}
-
-/// Modular title component displaying Role and Company metadata
-class _RoleCompanyTitle extends StatelessWidget {
-  final String role;
-  final String company;
-  final String location;
-
-  const _RoleCompanyTitle({
-    required this.role,
-    required this.company,
-    required this.location,
-  });
+  const _TitleBlock({required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -395,7 +273,7 @@ class _RoleCompanyTitle extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         GradientText(
-          role,
+          item.role,
           style: TextStyle(
             fontSize: 18.sp,
             fontWeight: FontWeight.w800,
@@ -409,7 +287,7 @@ class _RoleCompanyTitle extends StatelessWidget {
           runSpacing: 4.h,
           children: [
             Text(
-              company,
+              item.company,
               style: GoogleFonts.inter(
                 color: Colors.white,
                 fontSize: 14.sp,
@@ -417,15 +295,15 @@ class _RoleCompanyTitle extends StatelessWidget {
               ),
             ),
             Container(
-              width: 4.r,
-              height: 4.r,
+              width: 4,
+              height: 4,
               decoration: const BoxDecoration(
                 color: AppColors.textMuted,
                 shape: BoxShape.circle,
               ),
             ),
             Text(
-              location,
+              item.location,
               style: GoogleFonts.inter(
                 color: AppColors.textMuted,
                 fontSize: 12.sp,
@@ -438,7 +316,6 @@ class _RoleCompanyTitle extends StatelessWidget {
   }
 }
 
-/// Modular period badge chip with pulsing live status for active positions
 class _PeriodBadge extends StatelessWidget {
   final String period;
   final bool isCurrent;
@@ -456,12 +333,11 @@ class _PeriodBadge extends StatelessWidget {
         color: isCurrent
             ? AppColors.primary.withAlpha(35)
             : AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(50.r),
+        borderRadius: BorderRadius.circular(50),
         border: Border.all(
           color: isCurrent
               ? AppColors.primary.withAlpha(120)
               : AppColors.borderLight,
-          width: 1.r,
         ),
       ),
       child: Row(
@@ -469,8 +345,8 @@ class _PeriodBadge extends StatelessWidget {
         children: [
           if (isCurrent) ...[
             Container(
-              width: 6.r,
-              height: 6.r,
+              width: 6,
+              height: 6,
               decoration: const BoxDecoration(
                 color: AppColors.secondary,
                 shape: BoxShape.circle,
@@ -492,60 +368,15 @@ class _PeriodBadge extends StatelessWidget {
   }
 }
 
-/// Modular overview description with soft-wrapping and responsive typography
-class _ExperienceDescription extends StatelessWidget {
-  final String description;
+class _BulletPoint extends StatelessWidget {
+  final String text;
 
-  const _ExperienceDescription({
-    required this.description,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      description,
-      softWrap: true,
-      style: GoogleFonts.inter(
-        color: AppColors.textSecondary,
-        fontSize: 13.5.sp,
-        height: 1.6,
-      ),
-    );
-  }
-}
-
-/// Modular list of achievement bullet points
-class _AchievementList extends StatelessWidget {
-  final List<String> achievements;
-
-  const _AchievementList({
-    required this.achievements,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: achievements
-          .map((a) => _AchievementBulletItem(achievement: a))
-          .toList(growable: false),
-    );
-  }
-}
-
-/// Individual achievement bullet point with wrapped flexible text
-class _AchievementBulletItem extends StatelessWidget {
-  final String achievement;
-
-  const _AchievementBulletItem({
-    required this.achievement,
-  });
+  const _BulletPoint({required this.text});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 7.h),
+      padding: EdgeInsets.only(bottom: 8.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -563,11 +394,10 @@ class _AchievementBulletItem extends StatelessWidget {
           SizedBox(width: 8.w),
           Expanded(
             child: Text(
-              achievement,
-              softWrap: true,
+              text,
               style: GoogleFonts.inter(
                 color: AppColors.textPrimary,
-                fontSize: 12.5.sp,
+                fontSize: 13.sp,
                 height: 1.55,
               ),
             ),
