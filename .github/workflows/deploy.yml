@@ -5,14 +5,8 @@ on:
     branches:
       - main
 
-# Grant GITHUB_TOKEN write permissions to push to the gh-pages branch
 permissions:
   contents: write
-
-# Prevent concurrent deployments from colliding
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
@@ -35,10 +29,7 @@ jobs:
         run: flutter build web --release --base-href "/my_portfolio/"
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+        uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build/web
-          force_orphan: true
-
-          force_orphan: true
